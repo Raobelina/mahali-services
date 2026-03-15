@@ -1,27 +1,22 @@
 // ═══════════════════════════════
-// MAHALI SERVICES v3 — script.js
+// MAHALI SERVICES v4 — script.js
 // ═══════════════════════════════
 
-// ── Navbar stuck state ──
+// ── Navbar ──
 const nav = document.getElementById('nav');
 window.addEventListener('scroll', () => {
   nav.classList.toggle('stuck', window.scrollY > 40);
 }, { passive: true });
 
-// ── Mobile nav toggle ──
-const toggle   = document.getElementById('navToggle');
-const drawer   = document.getElementById('navDrawer');
+// ── Mobile nav ──
+const toggle = document.getElementById('navToggle');
+const drawer = document.getElementById('navDrawer');
 
 toggle.addEventListener('click', () => {
   const open = drawer.classList.toggle('open');
   const [s1, s2] = toggle.querySelectorAll('span');
-  if (open) {
-    s1.style.transform = 'translateY(7.5px) rotate(45deg)';
-    s2.style.transform = 'translateY(-7.5px) rotate(-45deg)';
-  } else {
-    s1.style.transform = '';
-    s2.style.transform = '';
-  }
+  s1.style.transform = open ? 'translateY(7.5px) rotate(45deg)'  : '';
+  s2.style.transform = open ? 'translateY(-7.5px) rotate(-45deg)' : '';
 });
 
 document.querySelectorAll('.drawer-link').forEach(l => {
@@ -31,86 +26,73 @@ document.querySelectorAll('.drawer-link').forEach(l => {
   });
 });
 
-// ── Scroll reveal ──
-const revealEls = document.querySelectorAll('.reveal');
+// ── Scroll reveal with stagger ──
+const reveals = document.querySelectorAll('.reveal');
 const ro = new IntersectionObserver((entries) => {
-  entries.forEach((e, i) => {
-    if (e.isIntersecting) {
-      // stagger siblings
-      const siblings = [...e.target.parentElement.querySelectorAll('.reveal:not(.in)')];
-      const idx = siblings.indexOf(e.target);
-      setTimeout(() => e.target.classList.add('in'), idx * 80);
-      ro.unobserve(e.target);
-    }
+  // Group entries by parent for stagger
+  entries.forEach(e => {
+    if (!e.isIntersecting) return;
+    const siblings = [...e.target.parentElement.querySelectorAll('.reveal:not(.in)')];
+    const idx = siblings.indexOf(e.target);
+    setTimeout(() => e.target.classList.add('in'), Math.max(0, idx) * 85);
+    ro.unobserve(e.target);
   });
-}, { threshold: 0.08, rootMargin: '0px 0px -60px 0px' });
+}, { threshold: 0.07, rootMargin: '0px 0px -50px 0px' });
 
-revealEls.forEach(el => ro.observe(el));
+reveals.forEach(el => ro.observe(el));
 
-// ── Active nav section highlighting ──
+// ── Active nav highlight ──
 const sections = document.querySelectorAll('section[id]');
 const navLinks = document.querySelectorAll('.nav-menu a');
-
 const so = new IntersectionObserver((entries) => {
   entries.forEach(e => {
-    if (e.isIntersecting) {
-      navLinks.forEach(a => {
-        const active = a.getAttribute('href') === `#${e.target.id}`;
-        a.style.color = active ? 'var(--text)' : '';
-        a.style.background = active ? 'var(--bg3)' : '';
-      });
-    }
+    if (!e.isIntersecting) return;
+    navLinks.forEach(a => {
+      const active = a.getAttribute('href') === `#${e.target.id}`;
+      a.style.color      = active ? 'var(--text)' : '';
+      a.style.background = active ? 'var(--bg3)'  : '';
+    });
   });
-}, { threshold: 0.45 });
-
+}, { threshold: 0.4 });
 sections.forEach(s => so.observe(s));
 
 // ── Contact form ──
 const form = document.getElementById('contactForm');
 if (form) {
-  // Check if Formspree is configured
-  const action = form.getAttribute('action') || '';
-  const isFormspree = action.includes('formspree.io') && !action.includes('VOTRE_CODE');
+  const isConfigured = (form.action || '').includes('formspree.io') && !form.action.includes('VOTRE_CODE');
 
   form.addEventListener('submit', async (e) => {
-    if (!isFormspree) {
-      // Demo mode — no real Formspree key yet
-      e.preventDefault();
-    }
-
-    const btn      = form.querySelector('.cf-submit');
-    const textEl   = btn.querySelector('.cfs-text');
-    const arrowEl  = btn.querySelector('.cfs-arrow');
-    const origText = textEl.textContent;
-
+    if (!isConfigured) e.preventDefault();
+    const btn    = form.querySelector('.cf-submit');
+    const textEl = btn.querySelector('.cfs-text');
+    const arrEl  = btn.querySelector('.cfs-arrow');
+    const orig   = textEl.textContent;
     btn.disabled = true;
     textEl.textContent = 'Envoi en cours…';
-    arrowEl.textContent = '⏳';
-
-    if (!isFormspree) {
+    arrEl.textContent  = '⏳';
+    if (!isConfigured) {
       await new Promise(r => setTimeout(r, 1200));
-      textEl.textContent = 'Message envoyé !';
-      arrowEl.textContent = '✓';
+      textEl.textContent   = 'Message envoyé !';
+      arrEl.textContent    = '✓';
       btn.style.background = '#2a7a56';
       setTimeout(() => {
-        textEl.textContent = origText;
-        arrowEl.textContent = '→';
+        textEl.textContent   = orig;
+        arrEl.textContent    = '→';
         btn.style.background = '';
-        btn.disabled = false;
+        btn.disabled         = false;
         form.reset();
       }, 3500);
     }
   });
 }
 
-// ── Smooth scroll offset (accounts for fixed nav) ──
+// ── Smooth scroll with nav offset ──
 document.querySelectorAll('a[href^="#"]').forEach(a => {
   a.addEventListener('click', e => {
     const target = document.querySelector(a.getAttribute('href'));
     if (!target) return;
     e.preventDefault();
     const navH = parseInt(getComputedStyle(document.documentElement).getPropertyValue('--nav')) || 72;
-    const top  = target.getBoundingClientRect().top + window.scrollY - navH - 24;
-    window.scrollTo({ top, behavior: 'smooth' });
+    window.scrollTo({ top: target.getBoundingClientRect().top + window.scrollY - navH - 24, behavior: 'smooth' });
   });
 });
