@@ -1,118 +1,116 @@
-// ════════════════════════════════
-// MAHALI SERVICES v2 — script.js
-// ════════════════════════════════
+// ═══════════════════════════════
+// MAHALI SERVICES v3 — script.js
+// ═══════════════════════════════
 
-// ── Navbar scroll effect ──
-const navbar = document.getElementById('navbar');
-let lastScroll = 0;
+// ── Navbar stuck state ──
+const nav = document.getElementById('nav');
 window.addEventListener('scroll', () => {
-  const y = window.scrollY;
-  navbar.classList.toggle('elevated', y > 20);
-  lastScroll = y;
+  nav.classList.toggle('stuck', window.scrollY > 40);
 }, { passive: true });
 
-// ── Mobile burger ──
-const burger    = document.getElementById('burger');
-const mobileNav = document.getElementById('mobileNav');
+// ── Mobile nav toggle ──
+const toggle   = document.getElementById('navToggle');
+const drawer   = document.getElementById('navDrawer');
 
-burger.addEventListener('click', () => {
-  const open = mobileNav.classList.toggle('open');
-  const s = burger.querySelectorAll('span');
+toggle.addEventListener('click', () => {
+  const open = drawer.classList.toggle('open');
+  const [s1, s2] = toggle.querySelectorAll('span');
   if (open) {
-    s[0].style.transform = 'translateY(7px) rotate(45deg)';
-    s[1].style.opacity   = '0';
-    s[2].style.transform = 'translateY(-7px) rotate(-45deg)';
+    s1.style.transform = 'translateY(7.5px) rotate(45deg)';
+    s2.style.transform = 'translateY(-7.5px) rotate(-45deg)';
   } else {
-    s.forEach(el => { el.style.transform = ''; el.style.opacity = ''; });
+    s1.style.transform = '';
+    s2.style.transform = '';
   }
 });
 
-// Close mobile nav on link click
-document.querySelectorAll('.mn-a').forEach(a => {
-  a.addEventListener('click', () => {
-    mobileNav.classList.remove('open');
-    burger.querySelectorAll('span').forEach(s => { s.style.transform = ''; s.style.opacity = ''; });
+document.querySelectorAll('.drawer-link').forEach(l => {
+  l.addEventListener('click', () => {
+    drawer.classList.remove('open');
+    toggle.querySelectorAll('span').forEach(s => s.style.transform = '');
   });
 });
 
 // ── Scroll reveal ──
-const revealTargets = document.querySelectorAll(
-  '.service-row, .ps-step, .val-card, .shop-card, .cd-item, ' +
-  '.affiliation-strip, .app-showcase, .apps-coming, .contact-form, ' +
-  '.sec-header-row > *, .aff-left, .contact-left, [data-reveal]'
-);
-
-revealTargets.forEach(el => {
-  if (!el.classList.contains('reveal-up')) {
-    el.classList.add('sr-anim');
-  }
-});
-
-const observer = new IntersectionObserver((entries) => {
-  entries.forEach(e => {
+const revealEls = document.querySelectorAll('.reveal');
+const ro = new IntersectionObserver((entries) => {
+  entries.forEach((e, i) => {
     if (e.isIntersecting) {
-      const delay = parseFloat(e.target.dataset.delay || '0') * 1000;
-      setTimeout(() => e.target.classList.add('vis'), delay);
-      observer.unobserve(e.target);
+      // stagger siblings
+      const siblings = [...e.target.parentElement.querySelectorAll('.reveal:not(.in)')];
+      const idx = siblings.indexOf(e.target);
+      setTimeout(() => e.target.classList.add('in'), idx * 80);
+      ro.unobserve(e.target);
     }
   });
-}, { threshold: 0.1, rootMargin: '0px 0px -50px 0px' });
+}, { threshold: 0.08, rootMargin: '0px 0px -60px 0px' });
 
-revealTargets.forEach(el => observer.observe(el));
+revealEls.forEach(el => ro.observe(el));
 
-// ── Active nav highlighting ──
-const sections  = document.querySelectorAll('section[id]');
-const navAnchors = document.querySelectorAll('.nav-a');
+// ── Active nav section highlighting ──
+const sections = document.querySelectorAll('section[id]');
+const navLinks = document.querySelectorAll('.nav-menu a');
 
-const secObserver = new IntersectionObserver((entries) => {
+const so = new IntersectionObserver((entries) => {
   entries.forEach(e => {
     if (e.isIntersecting) {
-      navAnchors.forEach(a => {
-        a.style.color = '';
-        a.style.fontWeight = '';
+      navLinks.forEach(a => {
+        const active = a.getAttribute('href') === `#${e.target.id}`;
+        a.style.color = active ? 'var(--text)' : '';
+        a.style.background = active ? 'var(--bg3)' : '';
       });
-      const active = document.querySelector(`.nav-a[href="#${e.target.id}"]`);
-      if (active) {
-        active.style.color = 'var(--c-brand)';
-        active.style.fontWeight = '600';
-      }
     }
   });
-}, { threshold: 0.4 });
+}, { threshold: 0.45 });
 
-sections.forEach(s => secObserver.observe(s));
+sections.forEach(s => so.observe(s));
 
 // ── Contact form ──
 const form = document.getElementById('contactForm');
 if (form) {
-  form.addEventListener('submit', e => {
-    e.preventDefault();
-    const btn     = form.querySelector('.btn-submit');
-    const inner   = btn.querySelector('.btn-inner') || btn;
-    const origTxt = inner.textContent;
-    inner.textContent = '✅ Message envoyé ! Nous vous répondons sous 24h.';
-    btn.style.background = '#2a7a56';
+  // Check if Formspree is configured
+  const action = form.getAttribute('action') || '';
+  const isFormspree = action.includes('formspree.io') && !action.includes('VOTRE_CODE');
+
+  form.addEventListener('submit', async (e) => {
+    if (!isFormspree) {
+      // Demo mode — no real Formspree key yet
+      e.preventDefault();
+    }
+
+    const btn      = form.querySelector('.cf-submit');
+    const textEl   = btn.querySelector('.cfs-text');
+    const arrowEl  = btn.querySelector('.cfs-arrow');
+    const origText = textEl.textContent;
+
     btn.disabled = true;
-    setTimeout(() => {
-      inner.textContent = origTxt;
-      btn.style.background = '';
-      btn.disabled = false;
-      form.reset();
-    }, 4000);
+    textEl.textContent = 'Envoi en cours…';
+    arrowEl.textContent = '⏳';
+
+    if (!isFormspree) {
+      await new Promise(r => setTimeout(r, 1200));
+      textEl.textContent = 'Message envoyé !';
+      arrowEl.textContent = '✓';
+      btn.style.background = '#2a7a56';
+      setTimeout(() => {
+        textEl.textContent = origText;
+        arrowEl.textContent = '→';
+        btn.style.background = '';
+        btn.disabled = false;
+        form.reset();
+      }, 3500);
+    }
   });
 }
 
-// ── Stagger service rows ──
-document.querySelectorAll('.service-row').forEach((row, i) => {
-  row.style.transitionDelay = `${i * 80}ms`;
-});
-
-// ── Stagger process steps ──
-document.querySelectorAll('.ps-step').forEach((step, i) => {
-  step.style.transitionDelay = `${i * 100}ms`;
-});
-
-// ── Stagger value cards ──
-document.querySelectorAll('.val-card').forEach((card, i) => {
-  card.style.transitionDelay = `${i * 80}ms`;
+// ── Smooth scroll offset (accounts for fixed nav) ──
+document.querySelectorAll('a[href^="#"]').forEach(a => {
+  a.addEventListener('click', e => {
+    const target = document.querySelector(a.getAttribute('href'));
+    if (!target) return;
+    e.preventDefault();
+    const navH = parseInt(getComputedStyle(document.documentElement).getPropertyValue('--nav')) || 72;
+    const top  = target.getBoundingClientRect().top + window.scrollY - navH - 24;
+    window.scrollTo({ top, behavior: 'smooth' });
+  });
 });
