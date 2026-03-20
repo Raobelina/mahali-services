@@ -1,14 +1,19 @@
-// ═══════════════════════════════
-// MAHALI SERVICES v4 — script.js
-// ═══════════════════════════════
+// ═══════════════════════════════════════
+// MAHALI SERVICES — script.js
+// Ajoute .js-ok sur body EN PREMIER
+// pour activer les animations reveal
+// ═══════════════════════════════════════
 
-// ── Navbar ──
+// ① Activer les animations (doit être en premier)
+document.body.classList.add('js-ok');
+
+// ② Navbar sticky
 const nav = document.getElementById('nav');
 window.addEventListener('scroll', () => {
   nav.classList.toggle('stuck', window.scrollY > 40);
 }, { passive: true });
 
-// ── Mobile nav ──
+// ③ Mobile nav toggle
 const toggle = document.getElementById('navToggle');
 const drawer = document.getElementById('navDrawer');
 
@@ -19,65 +24,70 @@ toggle.addEventListener('click', () => {
   s2.style.transform = open ? 'translateY(-7.5px) rotate(-45deg)' : '';
 });
 
-document.querySelectorAll('.drawer-link').forEach(l => {
-  l.addEventListener('click', () => {
+document.querySelectorAll('.drawer-link').forEach(link => {
+  link.addEventListener('click', () => {
     drawer.classList.remove('open');
     toggle.querySelectorAll('span').forEach(s => s.style.transform = '');
   });
 });
 
-// ── Scroll reveal with stagger ──
-const reveals = document.querySelectorAll('.reveal');
-const ro = new IntersectionObserver((entries) => {
-  // Group entries by parent for stagger
-  entries.forEach(e => {
-    if (!e.isIntersecting) return;
-    const siblings = [...e.target.parentElement.querySelectorAll('.reveal:not(.in)')];
-    const idx = siblings.indexOf(e.target);
-    setTimeout(() => e.target.classList.add('in'), Math.max(0, idx) * 85);
-    ro.unobserve(e.target);
+// ④ Scroll reveal avec stagger
+const revealEls = document.querySelectorAll('.reveal');
+const revealObserver = new IntersectionObserver((entries) => {
+  entries.forEach(entry => {
+    if (!entry.isIntersecting) return;
+    const parent   = entry.target.parentElement;
+    const siblings = parent ? [...parent.querySelectorAll('.reveal:not(.in)')] : [];
+    const idx      = Math.max(0, siblings.indexOf(entry.target));
+    setTimeout(() => entry.target.classList.add('in'), idx * 80);
+    revealObserver.unobserve(entry.target);
   });
-}, { threshold: 0.07, rootMargin: '0px 0px -50px 0px' });
+}, { threshold: 0.06, rootMargin: '0px 0px -40px 0px' });
 
-reveals.forEach(el => ro.observe(el));
+revealEls.forEach(el => revealObserver.observe(el));
 
-// ── Active nav highlight ──
+// ⑤ Highlight nav actif au scroll
 const sections = document.querySelectorAll('section[id]');
-const navLinks = document.querySelectorAll('.nav-menu a');
-const so = new IntersectionObserver((entries) => {
-  entries.forEach(e => {
-    if (!e.isIntersecting) return;
-    navLinks.forEach(a => {
-      const active = a.getAttribute('href') === `#${e.target.id}`;
-      a.style.color      = active ? 'var(--text)' : '';
-      a.style.background = active ? 'var(--bg3)'  : '';
-    });
-  });
-}, { threshold: 0.4 });
-sections.forEach(s => so.observe(s));
+const navLinks  = document.querySelectorAll('.nav-menu a');
 
-// ── Contact form ──
+sections.forEach(section => {
+  new IntersectionObserver((entries) => {
+    entries.forEach(e => {
+      if (!e.isIntersecting) return;
+      navLinks.forEach(a => {
+        const active = a.getAttribute('href') === '#' + e.target.id;
+        a.style.color      = active ? 'var(--text)' : '';
+        a.style.background = active ? 'var(--bg3)'  : '';
+      });
+    });
+  }, { threshold: 0.4 }).observe(section);
+});
+
+// ⑥ Formulaire de contact
 const form = document.getElementById('contactForm');
 if (form) {
-  const isConfigured = (form.action || '').includes('formspree.io') && !form.action.includes('VOTRE_CODE');
+  const isConfigured = form.action.includes('formspree.io') && !form.action.includes('VOTRE_CODE');
 
   form.addEventListener('submit', async (e) => {
     if (!isConfigured) e.preventDefault();
-    const btn    = form.querySelector('.cf-submit');
-    const textEl = btn.querySelector('.cfs-text');
-    const arrEl  = btn.querySelector('.cfs-arrow');
-    const orig   = textEl.textContent;
-    btn.disabled = true;
-    textEl.textContent = 'Envoi en cours…';
-    arrEl.textContent  = '⏳';
+
+    const btn  = form.querySelector('.cf-submit');
+    const txt  = btn.querySelector('.cfs-text');
+    const arr  = btn.querySelector('.cfs-arrow');
+    const orig = txt.textContent;
+
+    btn.disabled       = true;
+    txt.textContent    = 'Envoi en cours…';
+    arr.textContent    = '⏳';
+
     if (!isConfigured) {
       await new Promise(r => setTimeout(r, 1200));
-      textEl.textContent   = 'Message envoyé !';
-      arrEl.textContent    = '✓';
+      txt.textContent    = 'Message envoyé !';
+      arr.textContent    = '✓';
       btn.style.background = '#2a7a56';
       setTimeout(() => {
-        textEl.textContent   = orig;
-        arrEl.textContent    = '→';
+        txt.textContent      = orig;
+        arr.textContent      = '→';
         btn.style.background = '';
         btn.disabled         = false;
         form.reset();
@@ -86,13 +96,16 @@ if (form) {
   });
 }
 
-// ── Smooth scroll with nav offset ──
+// ⑦ Smooth scroll avec offset navbar
 document.querySelectorAll('a[href^="#"]').forEach(a => {
   a.addEventListener('click', e => {
     const target = document.querySelector(a.getAttribute('href'));
     if (!target) return;
     e.preventDefault();
     const navH = parseInt(getComputedStyle(document.documentElement).getPropertyValue('--nav')) || 72;
-    window.scrollTo({ top: target.getBoundingClientRect().top + window.scrollY - navH - 24, behavior: 'smooth' });
+    window.scrollTo({
+      top: target.getBoundingClientRect().top + window.scrollY - navH - 20,
+      behavior: 'smooth'
+    });
   });
 });
