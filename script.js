@@ -63,35 +63,61 @@ sections.forEach(section => {
   }, { threshold: 0.4 }).observe(section);
 });
 
-// ⑥ Formulaire de contact
+// ⑥ Formulaire de contact → /api/contact (Resend)
 const form = document.getElementById('contactForm');
 if (form) {
-  const isConfigured = form.action.includes('formspree.io') && !form.action.includes('VOTRE_CODE');
-
   form.addEventListener('submit', async (e) => {
-    if (!isConfigured) e.preventDefault();
+    e.preventDefault();
 
     const btn  = form.querySelector('.cf-submit');
     const txt  = btn.querySelector('.cfs-text');
     const arr  = btn.querySelector('.cfs-arrow');
     const orig = txt.textContent;
 
-    btn.disabled       = true;
-    txt.textContent    = 'Envoi en cours…';
-    arr.textContent    = '⏳';
+    btn.disabled    = true;
+    txt.textContent = 'Envoi en cours…';
+    arr.textContent = '⏳';
 
-    if (!isConfigured) {
-      await new Promise(r => setTimeout(r, 1200));
-      txt.textContent    = 'Message envoyé !';
-      arr.textContent    = '✓';
-      btn.style.background = '#2a7a56';
+    const data = {
+      name:    form.querySelector('[name="name"]').value,
+      email:   form.querySelector('[name="email"]').value,
+      phone:   form.querySelector('[name="phone"]').value,
+      service: form.querySelector('[name="service"]').value,
+      budget:  form.querySelector('[name="budget"]').value,
+      message: form.querySelector('[name="message"]').value,
+    };
+
+    try {
+      const res = await fetch('/api/contact', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+      });
+
+      if (res.ok) {
+        txt.textContent      = 'Message envoyé ✓';
+        arr.textContent      = '';
+        btn.style.background = '#2a7a56';
+        form.reset();
+        setTimeout(() => {
+          txt.textContent      = orig;
+          arr.textContent      = '→';
+          btn.style.background = '';
+          btn.disabled         = false;
+        }, 4000);
+      } else {
+        throw new Error('Erreur serveur');
+      }
+    } catch (err) {
+      txt.textContent      = 'Erreur — réessayez';
+      arr.textContent      = '✗';
+      btn.style.background = '#8b2020';
       setTimeout(() => {
         txt.textContent      = orig;
         arr.textContent      = '→';
         btn.style.background = '';
         btn.disabled         = false;
-        form.reset();
-      }, 3500);
+      }, 3000);
     }
   });
 }
